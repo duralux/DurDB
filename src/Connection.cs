@@ -47,6 +47,32 @@ namespace DurDB
     }
 
 
+    public static void OpenIf(this DbConnection connection)
+    {
+      if (connection.State != ConnectionState.Open)
+      {
+        try
+        {
+          connection.Open();
+        }
+        catch { }
+      }
+    }
+
+
+    public static async Task OpenIfAsync(this DbConnection connection)
+    {
+      if (connection.State != ConnectionState.Open)
+      {
+        try
+        {
+          await connection.OpenAsync();
+        }
+        catch { }
+      }
+    }
+
+
     #region ExecScalar
 
     /// <summary>Returns a scalar</summary>

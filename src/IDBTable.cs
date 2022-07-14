@@ -11,7 +11,7 @@ namespace DurDB
 
     #region Properties
 
-    static string Query => throw new NotImplementedException();
+    static string QUERY => throw new NotImplementedException();
 
     #endregion
 
