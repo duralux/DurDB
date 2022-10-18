@@ -289,7 +289,6 @@ namespace DurDB
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
-      var ret = new List<T>();
       var properties = typeof(T).GetPropertiesAndAttributes<
         System.ComponentModel.DataAnnotations.Schema.ColumnAttribute>()
         .Select(p => (
@@ -321,6 +320,61 @@ namespace DurDB
         }
         yield return obj;
       }
+    }
+
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="sql">SQL-Query</param>
+    /// <returns>Returns the casted class</returns>
+    public static Task<IEnumerable<T>> ExecQueryListAsync<T>(
+      this DbConnection connection, string sql) where T : new()
+    {
+      return ExecQueryListAsync<T>(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql));
+    }
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="command">SQL-Command</param>
+    /// <returns>Returns the casted class</returns>
+    public static async Task<IEnumerable<T>> ExecQueryListAsync<T>(
+      this DbConnection connection, DbCommand command) where T : new()
+    {
+      command.Connection = connection;
+      var ret = new List<T>();
+      var properties = typeof(T).GetPropertiesAndAttributes<
+        System.ComponentModel.DataAnnotations.Schema.ColumnAttribute>()
+        .Select(p => (
+          Property: p.Key,
+          Attribute: p.Value.First(),
+          Setter: p.Key.BuildUntypedSetter<T>()
+          ));
+
+      using DbDataReader reader = await command.ExecuteReaderAsync();
+      List<string> cols = new();
+
+      for (int i = 0; i < reader.VisibleFieldCount; i++)
+      { cols.Add(reader.GetName(i)); }
+
+      while (await reader.ReadAsync())
+      {
+        var obj = new T();
+        foreach ((var property, var Attribute, var setter) in properties)
+        {
+          try
+          {
+            object value = Convert.IsDBNull(reader[Attribute.Name!]) ?
+              property.PropertyType.GetDefault() :
+              reader[Attribute.Name!].ConvertTo(property.PropertyType);
+            setter(obj, value);
+          }
+          catch
+          { }
+        }
+        ret.Add(obj);
+      }
+      return ret;
     }
 
 
