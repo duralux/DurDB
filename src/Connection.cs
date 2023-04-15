@@ -274,10 +274,10 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
-    public static IAsyncEnumerable<T> ExecQueryAsync<T>(
+    public static IAsyncEnumerable<T> ExecQueryAsyncEnumerable<T>(
       this DbConnection connection, string sql) where T : new()
     {
-      return ExecQueryAsync<T>(connection,
+      return ExecQueryAsyncEnumerable<T>(connection,
         new Microsoft.Data.SqlClient.SqlCommand(sql));
     }
 
@@ -285,7 +285,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static async IAsyncEnumerable<T> ExecQueryAsync<T>(
+    public static async IAsyncEnumerable<T> ExecQueryAsyncEnumerable<T>(
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
@@ -298,10 +298,6 @@ namespace DurDB
           ));
 
       using DbDataReader reader = await command.ExecuteReaderAsync();
-      List<string> cols = new();
-
-      for (int i = 0; i < reader.VisibleFieldCount; i++)
-      { cols.Add(reader.GetName(i)); }
 
       while (await reader.ReadAsync())
       {
@@ -327,10 +323,10 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
-    public static Task<IEnumerable<T>> ExecQueryListAsync<T>(
+    public static Task<IEnumerable<T>> ExecQueryAsync<T>(
       this DbConnection connection, string sql) where T : new()
     {
-      return ExecQueryListAsync<T>(connection,
+      return ExecQueryAsync<T>(connection,
         new Microsoft.Data.SqlClient.SqlCommand(sql));
     }
 
@@ -338,7 +334,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static async Task<IEnumerable<T>> ExecQueryListAsync<T>(
+    public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
@@ -352,10 +348,6 @@ namespace DurDB
           ));
 
       using DbDataReader reader = await command.ExecuteReaderAsync();
-      List<string> cols = new();
-
-      for (int i = 0; i < reader.VisibleFieldCount; i++)
-      { cols.Add(reader.GetName(i)); }
 
       while (await reader.ReadAsync())
       {

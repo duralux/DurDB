@@ -51,5 +51,42 @@ namespace DurDB
 
     #endregion
 
+
+    #region Functionss
+
+    public SqlConnection GetOpenConnection()
+    {
+      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+      {
+        try
+        {
+          this._sqlConnection.Open();
+        }
+        catch (Exception ex)
+        {
+          this._logger.LogError(ex, "Error opening sql connection");
+        }
+      }
+      return this._sqlConnection;
+    }
+
+    public async Task<SqlConnection> GetOpenConnectionAsync()
+    {
+      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+      {
+        try
+        {
+          await this._sqlConnection.OpenAsync();
+        }
+        catch (Exception ex)
+        {
+          this._logger.LogError(ex, "Error opening sql connection");
+        }
+      }
+      return this._sqlConnection;
+    }
+
+    #endregion
+
   }
 }
