@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DurDB
@@ -324,10 +325,10 @@ namespace DurDB
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
     public static Task<IEnumerable<T>> ExecQueryAsync<T>(
-      this DbConnection connection, string sql) where T : new()
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default) where T : new()
     {
       return ExecQueryAsync<T>(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
     }
 
 
@@ -335,7 +336,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
     public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
-      this DbConnection connection, DbCommand command) where T : new()
+      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default) where T : new()
     {
       command.Connection = connection;
       var ret = new List<T>();
@@ -347,7 +348,7 @@ namespace DurDB
           Setter: p.Key.BuildUntypedSetter<T>()
           ));
 
-      using DbDataReader reader = await command.ExecuteReaderAsync();
+      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
 
       while (await reader.ReadAsync())
       {
