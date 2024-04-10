@@ -28,7 +28,7 @@ namespace DurDB
     #region Functions
 
     public override IEnumerable<string> GetChildKeys(IEnumerable<string> earlierKeys,
-      string parentPath)
+      string? parentPath)
     {
       try
       {
@@ -105,7 +105,7 @@ namespace DurDB
       return true;
     }
 
-    public override void Set(string key, string value)
+    public override void Set(string key, string? value)
     {
       throw new NotImplementedException("Cannot set configuration!");
     }

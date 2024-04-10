@@ -18,38 +18,60 @@ namespace DurDB
     private readonly ConnectionStrings _connectionStrings;
 
     private readonly SqlConnection _sqlConnection;
-    public SqlConnection SqlConnection
+    public SqlConnection SqlConnection => this._sqlConnection;
+
+  #endregion
+
+
+  #region Initialization
+
+  public DBService(ILogger<DBService> logger,
+    IOptions<ConnectionStrings> connectionStrings)
+  {
+    this._logger = logger;
+    this._connectionStrings = connectionStrings.Value;
+    this._sqlConnection = new SqlConnection(this._connectionStrings.DefaultConnection);
+  }
+
+  #endregion
+
+
+  #region Function
+
+  public SqlConnection GetOpenConnection()
+  {
+    if (this._sqlConnection.State != System.Data.ConnectionState.Open)
     {
-      get
+      try
       {
-        if (this._sqlConnection.State != System.Data.ConnectionState.Open)
-        {
-          try
-          {
-            this._sqlConnection.Open();
-          } catch (Exception ex)
-          {
-            this._logger.LogError(ex, "Error opening sql connection");
-          }
-        }
-        return this._sqlConnection;
+        this._sqlConnection.Open();
+      }
+      catch (Exception ex)
+      {
+        this._logger.LogError(ex, "Error opening sql connection");
       }
     }
-
-    #endregion
-
-
-    #region Initialization
-
-    public DBService(ILogger<DBService> logger,
-      IOptions<ConnectionStrings> connectionStrings)
-    {
-      this._logger = logger;
-      this._connectionStrings = connectionStrings.Value;
-      this._sqlConnection = new SqlConnection(this._connectionStrings.DefaultConnection);
-    }
-
-    #endregion
-
+    return this._sqlConnection;
   }
+
+
+  public async Task<SqlConnection> GetOpenConnectionAsync()
+  {
+    if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+    {
+      try
+      {
+        await this._sqlConnection.OpenAsync();
+      }
+      catch (Exception ex)
+      {
+        this._logger.LogError(ex, "Error opening sql connection");
+      }
+    }
+    return this._sqlConnection;
+  }
+
+  #endregion
+
+}
 }

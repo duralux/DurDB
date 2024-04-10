@@ -121,7 +121,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static List<Dictionary<string, object?>> ExecQuery(
+    public static IEnumerable<Dictionary<string, object?>> ExecQuery(
       this DbConnection connection, DbCommand command)
     {
       command.Connection = connection;
@@ -149,7 +149,7 @@ namespace DurDB
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static List<Dictionary<string, object?>> ExecQuery(
+    public static IEnumerable<Dictionary<string, object?>> ExecQuery(
       this DbConnection connection, string sql)
     {
       return ExecQuery(connection,
@@ -158,9 +158,20 @@ namespace DurDB
 
 
     /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="sql">SQL-Query</param>
+    /// <returns>Returns the casted class</returns>
+    public static IEnumerable<T> ExecQuery<T>(
+      this DbConnection connection, string sql) where T : new()
+    {
+      return ExecQuery<T>(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql));
+    }
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static List<T> ExecQuery<T>(
+    public static IEnumerable<T> ExecQuery<T>(
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
@@ -186,6 +197,56 @@ namespace DurDB
               property.PropertyType.GetDefault() :
               reader[Attribute.Name!].ConvertTo(property.PropertyType);
             setter(obj, value);
+          }
+          catch
+          { }
+        }
+        ret.Add(obj);
+      }
+      return ret;
+    }
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="sql">SQL-Query</param>
+    /// <returns>Returns the casted class</returns>
+    public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
+      this DbConnection connection, string sql) where T : new()
+    {
+      return await ExecQueryAsync<T>(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql));
+    }
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="command">SQL-Command</param>
+    /// <returns>Returns the casted class</returns>
+    public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
+      this DbConnection connection, DbCommand command) where T : new()
+    {
+      command.Connection = connection;
+      var ret = new List<T>();
+      var properties = typeof(T).GetPropertiesAndAttributes<
+        System.ComponentModel.DataAnnotations.Schema.ColumnAttribute>()
+        .Select(p => (
+          Property: p.Key,
+          Attribute: p.Value.First(),
+          Setter: p.Key.BuildUntypedSetter<T>()
+          ))
+        .ToArray();
+
+      using DbDataReader reader = await command.ExecuteReaderAsync();
+      while (await reader.ReadAsync())
+      {
+        var obj = new T();
+        foreach ((var property, var Attribute, var setter) in properties)
+        {
+          try
+          {
+            object value = Convert.IsDBNull(reader[Attribute.Name!]) ?
+              property.PropertyType.GetDefault() :
+              reader[Attribute.Name!].ConvertTo(property.PropertyType);
+            setter(obj, value);
             //property.SetValue(obj, value);
           }
           catch
@@ -200,21 +261,10 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
-    public static List<T> ExecQuery<T>(
-      this DbConnection connection, string sql) where T : new()
-    {
-      return ExecQuery<T>(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
-    }
-
-
-    /// <summary>Returns the result in a list custom classes</summary>
-    /// <param name="sql">SQL-Query</param>
-    /// <returns>Returns the casted class</returns>
-    public static IAsyncEnumerable<Dictionary<string, object?>> ExecQueryAsync(
+    public static IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
       this DbConnection connection, string sql)
     {
-      return ExecQueryAsync(connection,
+      return ExecQueryEnumerableAsync(connection,
         new Microsoft.Data.SqlClient.SqlCommand(sql));
     }
 
@@ -223,7 +273,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryAsync(
+    public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
       this DbConnection connection, DbCommand command)
     {
       command.Connection = connection;
@@ -248,10 +298,10 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
-    public static IAsyncEnumerable<T> ExecQueryAsync<T>(
+    public static IAsyncEnumerable<T> ExecQueryEnumerableAsync<T>(
       this DbConnection connection, string sql) where T : new()
     {
-      return ExecQueryAsync<T>(connection,
+      return ExecQueryEnumerableAsync<T>(connection,
         new Microsoft.Data.SqlClient.SqlCommand(sql));
     }
 
@@ -259,7 +309,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static async IAsyncEnumerable<T> ExecQueryAsync<T>(
+    public static async IAsyncEnumerable<T> ExecQueryEnumerableAsync<T>(
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
@@ -296,7 +346,7 @@ namespace DurDB
         yield return obj;
       }
     }
-
+        
 
     #endregion
 
