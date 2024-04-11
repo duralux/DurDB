@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DurDB
@@ -211,10 +212,10 @@ namespace DurDB
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
     public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
-      this DbConnection connection, string sql) where T : new()
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default) where T : new()
     {
       return await ExecQueryAsync<T>(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
     }
 
 
@@ -222,7 +223,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
     public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
-      this DbConnection connection, DbCommand command) where T : new()
+      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default) where T : new()
     {
       command.Connection = connection;
       var ret = new List<T>();
@@ -235,8 +236,8 @@ namespace DurDB
           ))
         .ToArray();
 
-      using DbDataReader reader = await command.ExecuteReaderAsync();
-      while (await reader.ReadAsync())
+      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+      while (await reader.ReadAsync(cancellationToken))
       {
         var obj = new T();
         foreach ((var property, var Attribute, var setter) in properties)
@@ -247,7 +248,6 @@ namespace DurDB
               property.PropertyType.GetDefault() :
               reader[Attribute.Name!].ConvertTo(property.PropertyType);
             setter(obj, value);
-            //property.SetValue(obj, value);
           }
           catch
           { }
@@ -258,14 +258,15 @@ namespace DurDB
     }
 
 
-    /// <summary>Returns the result in a list custom classes</summary>
+    /// <summary>Returns the result in a list of dictionaries</summary>
     /// <param name="sql">SQL-Query</param>
-    /// <returns>Returns the casted class</returns>
+    /// <returns>Returns the casted value in the dictionary. NULL is represented as 
+    /// DBNULL</returns>
     public static IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
-      this DbConnection connection, string sql)
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default)
     {
       return ExecQueryEnumerableAsync(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
     }
 
 
@@ -274,16 +275,16 @@ namespace DurDB
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
     public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
-      this DbConnection connection, DbCommand command)
+      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default)
     {
       command.Connection = connection;
 
-      using DbDataReader reader = await command.ExecuteReaderAsync();
+      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
       var cols = new List<string>();
       for (int i = 0; i < reader.VisibleFieldCount; i++)
       { cols.Add(reader.GetName(i)); }
 
-      while (reader.Read())
+      while (await reader.ReadAsync(cancellationToken))
       {
         var oTMP = new Dictionary<string, object?>();
         foreach (string sCol in cols)
@@ -299,10 +300,10 @@ namespace DurDB
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
     public static IAsyncEnumerable<T> ExecQueryEnumerableAsync<T>(
-      this DbConnection connection, string sql) where T : new()
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default) where T : new()
     {
       return ExecQueryEnumerableAsync<T>(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
     }
 
 
@@ -310,7 +311,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
     public static async IAsyncEnumerable<T> ExecQueryEnumerableAsync<T>(
-      this DbConnection connection, DbCommand command) where T : new()
+      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default) where T : new()
     {
       command.Connection = connection;
       var ret = new List<T>();
@@ -322,13 +323,13 @@ namespace DurDB
           Setter: p.Key.BuildUntypedSetter<T>()
           ));
 
-      using DbDataReader reader = await command.ExecuteReaderAsync();
+      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
       List<string> cols = new();
 
       for (int i = 0; i < reader.VisibleFieldCount; i++)
       { cols.Add(reader.GetName(i)); }
 
-      while (await reader.ReadAsync())
+      while (await reader.ReadAsync(cancellationToken))
       {
         var obj = new T();
         foreach ((var property, var Attribute, var setter) in properties)
