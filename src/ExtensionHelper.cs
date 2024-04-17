@@ -257,14 +257,19 @@ namespace DurDB
     }
 
 
-    public static IEnumerable<T> OrderDynamic<T>(IEnumerable<T> Data, string propToOrder)
+    public static IEnumerable<T> OrderDynamic<T>(IEnumerable<T> Data, string propToOrder, bool descending = false)
     {
       var param = Expression.Parameter(typeof(T));
       var memberAccess = Expression.Property(param, propToOrder);
       var convertedMemberAccess = Expression.Convert(memberAccess, typeof(object));
       var orderPredicate = Expression.Lambda<Func<T, object>>(convertedMemberAccess, param);
 
-      return Data.AsQueryable().OrderBy(orderPredicate);
+      var qDdata = Data.AsQueryable();
+      if (descending)
+      { 
+        return qDdata.OrderByDescending(orderPredicate);
+      }
+      return qDdata.OrderBy(orderPredicate);
     }
 
     #endregion

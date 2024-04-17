@@ -15,63 +15,104 @@ namespace DurDB
     #region Properties
 
     private readonly ILogger<DBService> _logger;
-    private readonly ConnectionStrings _connectionStrings;
+    private readonly ConnectionStrings _connectionStringsOriginal;
+
+    private string? ConnectionStrings;
 
     private readonly SqlConnection _sqlConnection;
     public SqlConnection SqlConnection => this._sqlConnection;
 
-  #endregion
+    #endregion
 
 
-  #region Initialization
+    #region Initialization
 
-  public DBService(ILogger<DBService> logger,
-    IOptions<ConnectionStrings> connectionStrings)
-  {
-    this._logger = logger;
-    this._connectionStrings = connectionStrings.Value;
-    this._sqlConnection = new SqlConnection(this._connectionStrings.DefaultConnection);
-  }
-
-  #endregion
-
-
-  #region Function
-
-  public SqlConnection GetOpenConnection()
-  {
-    if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+    public DBService(ILogger<DBService> logger,
+      IOptions<ConnectionStrings> connectionStrings)
     {
-      try
-      {
-        this._sqlConnection.Open();
-      }
-      catch (Exception ex)
-      {
-        this._logger.LogError(ex, "Error opening sql connection");
-      }
+      this._logger = logger;
+      this._connectionStringsOriginal = connectionStrings.Value;
+      this.ConnectionStrings = connectionStrings.Value.DefaultConnection;
+      this._sqlConnection = new SqlConnection(this.ConnectionStrings);
     }
-    return this._sqlConnection;
-  }
+
+    #endregion
 
 
-  public async Task<SqlConnection> GetOpenConnectionAsync()
-  {
-    if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+    #region Function
+
+    public SqlConnection GetOpenConnection()
     {
-      try
+      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
       {
-        await this._sqlConnection.OpenAsync();
+        try
+        {
+          this._sqlConnection.Open();
+        }
+        catch (Exception ex)
+        {
+          this._logger.LogError(ex, "Error opening sql connection");
+        }
       }
-      catch (Exception ex)
-      {
-        this._logger.LogError(ex, "Error opening sql connection");
-      }
+      return this._sqlConnection;
     }
-    return this._sqlConnection;
+
+
+    public async Task<SqlConnection> GetOpenConnectionAsync()
+    {
+      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+      {
+        try
+        {
+          await this._sqlConnection.OpenAsync();
+        }
+        catch (Exception ex)
+        {
+          this._logger.LogError(ex, "Error opening sql connection");
+        }
+      }
+      return this._sqlConnection;
+    }
+
+
+    private void SetNewConnectionString(string server, string database, string? appName = null)
+    {
+      var parts = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+      foreach (string part in this._connectionStringsOriginal.DefaultConnection?.Split(";") ?? Array.Empty<string>())
+      {
+        var p = part.Split("=");
+        parts.Add(p[0], p[1]);
+      }
+
+      parts["SERVER"] = server;
+      parts["DATABASE"] = database;
+      if (appName != null)
+      {
+        parts["APPLICATION NAME"] = appName;
+      }
+
+      this.ConnectionStrings = String.Join(";", parts.Select(d => $"{d.Key}={d.Value}"));
+    }
+
+
+    public void Reconnect(string server, string database, string? appName = null)
+    {
+      SetNewConnectionString(server, database, appName);
+      this._sqlConnection.Close();
+      this._sqlConnection.ConnectionString = this.ConnectionStrings;
+      this.GetOpenConnection();
+    }
+
+
+    public async Task ReconnectAsync(string server, string database, string? appName = null)
+    {
+      SetNewConnectionString(server, database, appName);
+      await this._sqlConnection.CloseAsync();
+      this._sqlConnection.ConnectionString = this.ConnectionStrings;
+      await this.GetOpenConnectionAsync();
+    }
+
+    #endregion
+
   }
-
-  #endregion
-
-}
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -275,7 +276,7 @@ namespace DurDB
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
     public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
-      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default)
+      this DbConnection connection, DbCommand command, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
       command.Connection = connection;
 
@@ -311,7 +312,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
     public static async IAsyncEnumerable<T> ExecQueryEnumerableAsync<T>(
-      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default) where T : new()
+      this DbConnection connection, DbCommand command, [EnumeratorCancellation] CancellationToken cancellationToken = default) where T : new()
     {
       command.Connection = connection;
       var ret = new List<T>();
