@@ -80,8 +80,14 @@ namespace DurDB
       var parts = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
       foreach (string part in this._connectionStringsOriginal.DefaultConnection?.Split(";") ?? Array.Empty<string>())
       {
+        if (String.IsNullOrEmpty(part))
+        { continue; }
+
         var p = part.Split("=");
-        parts.Add(p[0], p[1]);
+        if (p.Length == 2)
+        {
+          parts.Add(p[0].ToUpper(), p[1]);
+        }
       }
 
       parts["SERVER"] = server;
@@ -107,9 +113,13 @@ namespace DurDB
     public async Task ReconnectAsync(string server, string database, string? appName = null)
     {
       SetNewConnectionString(server, database, appName);
+      var isOpen = this._sqlConnection.State != System.Data.ConnectionState.Open;
       await this._sqlConnection.CloseAsync();
       this._sqlConnection.ConnectionString = this.ConnectionStrings;
-      await this.GetOpenConnectionAsync();
+      if (isOpen)
+      {
+        await this.GetOpenConnectionAsync();
+      }
     }
 
     #endregion
