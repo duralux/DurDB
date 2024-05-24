@@ -21,6 +21,7 @@ namespace DurDB
 
     private readonly SqlConnection _sqlConnection;
     public SqlConnection SqlConnection => this._sqlConnection;
+    public static Version? AssemblyVersion => typeof(SqlConnection).Assembly.GetName().Version;
 
     #endregion
 
