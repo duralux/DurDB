@@ -79,12 +79,12 @@ namespace DurDB
     private void SetNewConnectionString(string server, string database, string? appName = null)
     {
       var parts = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-      foreach (string part in this._connectionStringsOriginal.DefaultConnection?.Split(";") ?? Array.Empty<string>())
+      foreach (string part in this._connectionStringsOriginal.DefaultConnection?.Split(';') ?? Array.Empty<string>())
       {
         if (String.IsNullOrEmpty(part))
         { continue; }
 
-        var p = part.Split("=");
+        var p = part.Split('=');
         if (p.Length == 2)
         {
           parts.Add(p[0].ToUpper(), p[1]);
@@ -115,7 +115,11 @@ namespace DurDB
     {
       SetNewConnectionString(server, database, appName);
       var isOpen = this._sqlConnection.State != System.Data.ConnectionState.Open;
+#if NETSTANDARD2_0
+      this._sqlConnection.Close();
+#else
       await this._sqlConnection.CloseAsync();
+#endif
       this._sqlConnection.ConnectionString = this.ConnectionStrings;
       if (isOpen)
       {
@@ -123,7 +127,7 @@ namespace DurDB
       }
     }
 
-    #endregion
+#endregion
 
   }
 }

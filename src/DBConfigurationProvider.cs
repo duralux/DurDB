@@ -58,7 +58,7 @@ namespace DurDB
           sql += $" AND ({puc} = '{u}' OR {puc} IS NULL) ORDER BY {puc} DESC";
         }
         var res = connection.ExecQuery(sql)
-          .Select(r => Convert.ToString(r[kC]!)!.Split(":").LastOrDefault()!)!
+          .Select(r => Convert.ToString(r[kC]!)!.Split(':').LastOrDefault()!)!
           .ToArray();
         return res;
       }
