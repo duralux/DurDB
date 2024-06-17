@@ -123,7 +123,7 @@ namespace DurDB
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static IEnumerable<Dictionary<string, object?>> ExecQuery(
+    public static IList<Dictionary<string, object?>> ExecQuery(
       this DbConnection connection, DbCommand command)
     {
       command.Connection = connection;
@@ -151,7 +151,7 @@ namespace DurDB
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static IEnumerable<Dictionary<string, object?>> ExecQuery(
+    public static IList<Dictionary<string, object?>> ExecQuery(
       this DbConnection connection, string sql)
     {
       return ExecQuery(connection,
@@ -173,7 +173,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static IEnumerable<T> ExecQuery<T>(
+    public static IList<T> ExecQuery<T>(
       this DbConnection connection, DbCommand command) where T : new()
     {
       command.Connection = connection;
@@ -212,7 +212,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted class</returns>
-    public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
+    public static async Task<IList<T>> ExecQueryAsync<T>(
       this DbConnection connection, string sql, CancellationToken cancellationToken = default) where T : new()
     {
       return await ExecQueryAsync<T>(connection,
@@ -223,7 +223,7 @@ namespace DurDB
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted class</returns>
-    public static async Task<IEnumerable<T>> ExecQueryAsync<T>(
+    public static async Task<IList<T>> ExecQueryAsync<T>(
       this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default) where T : new()
     {
       command.Connection = connection;
