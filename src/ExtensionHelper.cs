@@ -257,6 +257,36 @@ namespace DurDB
     }
 
 
+    public static Dictionary<string, string> GetDictionaryFromString(this string data,
+      string delimiterKeyValue = "=", string? delimiterNewEntry = null, 
+      StringComparer? stringComparer = null)
+    {
+      var ret = new Dictionary<string, string>(stringComparer);
+#if NETSTANDARD2_0
+      var rows = data.Split('\r');
+#else
+      var rows = data.Split(delimiterNewEntry ?? Environment.NewLine, StringSplitOptions.TrimEntries);
+#endif
+      foreach (var row in rows)
+      {
+        try
+        {
+#if NETSTANDARD2_0
+          var splits = row.Split('=');
+#else
+          var splits = row.Split(delimiterKeyValue, StringSplitOptions.TrimEntries);
+#endif
+          var k = splits[0];
+          var v = splits.Length > 1 ? splits[1] : String.Empty;
+
+          ret[k] = v;
+        }
+        catch { }
+      }
+      return ret;
+    }
+
+
     public static IEnumerable<T> OrderDynamic<T>(IEnumerable<T> Data, string propToOrder, bool descending = false)
     {
       var param = Expression.Parameter(typeof(T));
@@ -272,7 +302,7 @@ namespace DurDB
       return qDdata.OrderBy(orderPredicate);
     }
 
-    #endregion
+#endregion
 
   }
 }
