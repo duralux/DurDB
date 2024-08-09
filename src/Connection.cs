@@ -53,6 +53,18 @@ namespace DurDB
 
     /// <summary>Returns a scalar</summary>
     /// <typeparam name="T">Return type</typeparam>
+    /// <param name="sql">SQL-Querry</param>
+    /// <returns>Returns the casted value. NULL is represented as DBNULL</returns>
+    public static T ExecScalar<T>(this Microsoft.Data.SqlClient.SqlConnection connection,
+      string sql)
+    {
+      return Connection.ExecScalar<T>(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql));
+    }    
+
+
+    /// <summary>Returns a scalar</summary>
+    /// <typeparam name="T">Return type</typeparam>
     /// <param name="command">SQL-Command</param>
     /// <returns>Returns the casted value. NULL is represented as DBNULL</returns>
     public static T ExecScalar<T>(this DbConnection connection, DbCommand command)
@@ -75,12 +87,12 @@ namespace DurDB
     /// <typeparam name="T">Return type</typeparam>
     /// <param name="sql">SQL-Querry</param>
     /// <returns>Returns the casted value. NULL is represented as DBNULL</returns>
-    public static T ExecScalar<T>(this Microsoft.Data.SqlClient.SqlConnection connection,
+    public static async Task<T> ExecScalarAsync<T>(this Microsoft.Data.SqlClient.SqlConnection connection,
       string sql)
     {
-      return Connection.ExecScalar<T>(connection,
+      return await Connection.ExecScalarAsync<T>(connection,
         new Microsoft.Data.SqlClient.SqlCommand(sql));
-    }    
+    }
 
 
     /// <summary>Returns a scalar</summary>
@@ -102,22 +114,22 @@ namespace DurDB
         default! : (T)Convert.ChangeType(ret, baseType ?? typeof(T))!;
     }
 
-
-    /// <summary>Returns a scalar</summary>
-    /// <typeparam name="T">Return type</typeparam>
-    /// <param name="sql">SQL-Querry</param>
-    /// <returns>Returns the casted value. NULL is represented as DBNULL</returns>
-    public static async Task<T> ExecScalarAsync<T>(this Microsoft.Data.SqlClient.SqlConnection connection,
-      string sql)
-    {
-      return await Connection.ExecScalarAsync<T>(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
-    }
-
     #endregion
 
 
-    #region ExecQuery
+    #region ExecQuery - Dictionary
+
+    /// <summary>Returns the result in a list of dictionaries</summary>
+    /// <param name="sql">SQL-Query</param>
+    /// <returns>Returns the casted value in the dictionary. NULL is represented as 
+    /// DBNULL</returns>
+    public static IList<Dictionary<string, object?>> ExecQuery(
+      this DbConnection connection, string sql)
+    {
+      return ExecQuery(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql));
+    }
+
 
     /// <summary>Returns the result in a list of dictionaries</summary>
     /// <param name="command">SQL-Command</param>
@@ -147,17 +159,86 @@ namespace DurDB
     }
 
 
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="sql">SQL-Query</param>
+    /// <returns>Returns the casted class</returns>
+    public static async Task<IList<Dictionary<string, object?>>> ExecQueryAsync(
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default)
+    {
+      return await ExecQueryAsync(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
+    }
+
+
+    /// <summary>Returns the result in a list custom classes</summary>
+    /// <param name="command">SQL-Command</param>
+    /// <returns>Returns the casted class</returns>
+    public static async Task<IList<Dictionary<string, object?>>> ExecQueryAsync(
+      this DbConnection connection, DbCommand command, CancellationToken cancellationToken = default)
+    {
+      command.Connection = connection;
+      var ret = new List<Dictionary<string, object?>>();
+
+      using DbDataReader reader = command.ExecuteReader();
+      var cols = new List<string>();
+      for (int i = 0; i < reader.VisibleFieldCount; i++)
+      { cols.Add(reader.GetName(i)); }
+
+      while (await reader.ReadAsync())
+      {
+        var oTMP = new Dictionary<string, object?>();
+        foreach (string sCol in cols)
+        {
+          oTMP.Add(sCol, Convert.IsDBNull(reader[sCol]) ? null! : reader[sCol]);
+        }
+        ret.Add(oTMP);
+      }
+      return ret;
+    }
+
+
     /// <summary>Returns the result in a list of dictionaries</summary>
     /// <param name="sql">SQL-Query</param>
     /// <returns>Returns the casted value in the dictionary. NULL is represented as 
     /// DBNULL</returns>
-    public static IList<Dictionary<string, object?>> ExecQuery(
-      this DbConnection connection, string sql)
+    public static IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
+      this DbConnection connection, string sql, CancellationToken cancellationToken = default)
     {
-      return ExecQuery(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql));
+      return ExecQueryEnumerableAsync(connection,
+        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
     }
 
+
+    /// <summary>Returns the result in a list of dictionaries</summary>
+    /// <param name="command">SQL-Command</param>
+    /// <returns>Returns the casted value in the dictionary. NULL is represented as 
+    /// DBNULL</returns>
+    public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
+      this DbConnection connection, DbCommand command, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+      command.Connection = connection;
+
+      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
+      var cols = new List<string>();
+      for (int i = 0; i < reader.VisibleFieldCount; i++)
+      { cols.Add(reader.GetName(i)); }
+
+      while (await reader.ReadAsync(cancellationToken))
+      {
+        var oTMP = new Dictionary<string, object?>();
+        foreach (string sCol in cols)
+        {
+          oTMP.Add(sCol, Convert.IsDBNull(reader[sCol]) ? null! : reader[sCol]);
+        }
+        yield return oTMP;
+      }
+    }
+
+
+    #endregion
+
+
+    #region ExecQuery - Generic
 
     /// <summary>Returns the result in a list custom classes</summary>
     /// <param name="sql">SQL-Query</param>
@@ -256,44 +337,6 @@ namespace DurDB
         ret.Add(obj);
       }
       return ret;
-    }
-
-
-    /// <summary>Returns the result in a list of dictionaries</summary>
-    /// <param name="sql">SQL-Query</param>
-    /// <returns>Returns the casted value in the dictionary. NULL is represented as 
-    /// DBNULL</returns>
-    public static IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
-      this DbConnection connection, string sql, CancellationToken cancellationToken = default)
-    {
-      return ExecQueryEnumerableAsync(connection,
-        new Microsoft.Data.SqlClient.SqlCommand(sql), cancellationToken);
-    }
-
-
-    /// <summary>Returns the result in a list of dictionaries</summary>
-    /// <param name="command">SQL-Command</param>
-    /// <returns>Returns the casted value in the dictionary. NULL is represented as 
-    /// DBNULL</returns>
-    public static async IAsyncEnumerable<Dictionary<string, object?>> ExecQueryEnumerableAsync(
-      this DbConnection connection, DbCommand command, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-      command.Connection = connection;
-
-      using DbDataReader reader = await command.ExecuteReaderAsync(cancellationToken);
-      var cols = new List<string>();
-      for (int i = 0; i < reader.VisibleFieldCount; i++)
-      { cols.Add(reader.GetName(i)); }
-
-      while (await reader.ReadAsync(cancellationToken))
-      {
-        var oTMP = new Dictionary<string, object?>();
-        foreach (string sCol in cols)
-        {
-          oTMP.Add(sCol, Convert.IsDBNull(reader[sCol]) ? null! : reader[sCol]);
-        }
-        yield return oTMP;
-      }
     }
 
 

@@ -68,7 +68,7 @@ namespace DurDB
         {
           throw;
         }
-        return Array.Empty<string>();
+        return [];
       }
     }
 

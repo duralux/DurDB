@@ -79,15 +79,19 @@ namespace DurDB
     private void SetNewConnectionString(string server, string database, string? appName = null)
     {
       var parts = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
-      foreach (string part in this._connectionStringsOriginal.DefaultConnection?.Split(';') ?? Array.Empty<string>())
-      {
-        if (String.IsNullOrEmpty(part))
-        { continue; }
-
-        var p = part.Split('=');
-        if (p.Length == 2)
+      var split = this._connectionStringsOriginal.DefaultConnection?.Split(';');
+      if (split != null) 
+      { 
+        foreach (string part in split)
         {
-          parts.Add(p[0].ToUpper(), p[1]);
+          if (String.IsNullOrEmpty(part))
+          { continue; }
+
+          var p = part.Split('=');
+          if (p.Length == 2)
+          {
+            parts.Add(p[0].ToUpper(), p[1]);
+          }
         }
       }
 
