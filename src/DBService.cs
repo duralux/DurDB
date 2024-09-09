@@ -19,8 +19,7 @@ namespace DurDB
 
     private string? ConnectionStrings;
 
-    private readonly SqlConnection _sqlConnection;
-    public SqlConnection SqlConnection => this._sqlConnection;
+    public SqlConnection SqlConnection { get; }
     public static Version? AssemblyVersion => typeof(SqlConnection).Assembly.GetName().Version;
 
     #endregion
@@ -34,7 +33,7 @@ namespace DurDB
       this._logger = logger;
       this._connectionStringsOriginal = connectionStrings.Value;
       this.ConnectionStrings = connectionStrings.Value.DefaultConnection;
-      this._sqlConnection = new SqlConnection(this.ConnectionStrings);
+      this.SqlConnection = new SqlConnection(this.ConnectionStrings);
     }
 
     #endregion
@@ -44,35 +43,35 @@ namespace DurDB
 
     public SqlConnection GetOpenConnection()
     {
-      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+      if (this.SqlConnection.State != System.Data.ConnectionState.Open)
       {
         try
         {
-          this._sqlConnection.Open();
+          this.SqlConnection.Open();
         }
         catch (Exception ex)
         {
           this._logger.LogError(ex, "Error opening sql connection");
         }
       }
-      return this._sqlConnection;
+      return this.SqlConnection;
     }
 
 
     public async Task<SqlConnection> GetOpenConnectionAsync()
     {
-      if (this._sqlConnection.State != System.Data.ConnectionState.Open)
+      if (this.SqlConnection.State != System.Data.ConnectionState.Open)
       {
         try
         {
-          await this._sqlConnection.OpenAsync();
+          await this.SqlConnection.OpenAsync();
         }
         catch (Exception ex)
         {
           this._logger.LogError(ex, "Error opening sql connection");
         }
       }
-      return this._sqlConnection;
+      return this.SqlConnection;
     }
 
 
@@ -109,8 +108,8 @@ namespace DurDB
     public void Reconnect(string server, string database, string? appName = null)
     {
       SetNewConnectionString(server, database, appName);
-      this._sqlConnection.Close();
-      this._sqlConnection.ConnectionString = this.ConnectionStrings;
+      this.SqlConnection.Close();
+      this.SqlConnection.ConnectionString = this.ConnectionStrings;
       this.GetOpenConnection();
     }
 
@@ -118,13 +117,13 @@ namespace DurDB
     public async Task ReconnectAsync(string server, string database, string? appName = null)
     {
       SetNewConnectionString(server, database, appName);
-      var isOpen = this._sqlConnection.State != System.Data.ConnectionState.Open;
+      var isOpen = this.SqlConnection.State != System.Data.ConnectionState.Open;
 #if NETSTANDARD2_0
-      this._sqlConnection.Close();
+      this.SqlConnection.Close();
 #else
-      await this._sqlConnection.CloseAsync();
+      await this.SqlConnection.CloseAsync();
 #endif
-      this._sqlConnection.ConnectionString = this.ConnectionStrings;
+      this.SqlConnection.ConnectionString = this.ConnectionStrings;
       if (isOpen)
       {
         await this.GetOpenConnectionAsync();
