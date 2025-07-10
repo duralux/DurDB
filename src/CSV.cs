@@ -37,13 +37,13 @@ namespace DurDB
         var values = properties.Select(p =>
         {
           var value = p.Property.GetValue(item);
-          var stringValue = value != null ? value.ToString() : string.Empty;
+          var stringValue = value != null ? value.ToString() : String.Empty;
           return enquote ? Enquote(stringValue) : stringValue;
         });
-        return string.Join(delimiter, values);
+        return String.Join(delimiter, values);
       });
 
-      return string.Join(Environment.NewLine, new[] { header }.Concat(rows));
+      return String.Join(Environment.NewLine, new[] { header }.Concat(rows));
     }
 
 

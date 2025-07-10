@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Web;
 
 namespace DurDB
 {
@@ -258,13 +259,25 @@ namespace DurDB
 
 
     public static Dictionary<string, string> GetDictionaryFromString(this string data,
-      string delimiterKeyValue = "=", string? delimiterNewEntry = null, 
-      StringComparer? stringComparer = null)
+      string delimiterKeyValue = "=", string delimiterNewEntry = "\r", 
+      bool DataDecode = true, StringComparer? stringComparer = null)
     {
       var ret = new Dictionary<string, string>(stringComparer);
+      data = data.Trim();
+      if (String.IsNullOrWhiteSpace(data))
+      {
+        return ret;
+      }
+
+
 #if NETSTANDARD2_0
-      var rows = data.Split('\r');
+      var rows = data.Split(delimiterNewEntry[0]);
 #else
+      if (delimiterNewEntry == null)
+      {
+        delimiterNewEntry = "\r";
+        data = data.Replace("\n", ""); // Ensure consistent line endings for split
+      }
       var rows = data.Split(delimiterNewEntry ?? Environment.NewLine, StringSplitOptions.TrimEntries);
 #endif
       foreach (var row in rows)
@@ -272,18 +285,54 @@ namespace DurDB
         try
         {
 #if NETSTANDARD2_0
-          var splits = row.Split('=');
+          var splits = row.Split(delimiterKeyValue[0]);
 #else
           var splits = row.Split(delimiterKeyValue, StringSplitOptions.TrimEntries);
 #endif
           var k = splits[0];
           var v = splits.Length > 1 ? splits[1] : String.Empty;
 
+          if (DataDecode)
+          {
+            k = HttpUtility.HtmlDecode(k);
+            v = HttpUtility.HtmlDecode(v);
+          }
+
           ret[k] = v;
         }
         catch { }
       }
       return ret;
+    }
+
+
+    public static string GetStringFromDictionary(this Dictionary<string, string> data,
+      string delimiterKeyValue = "=", string? delimiterNewEntry = null,
+      bool DataEncode = true)
+    {
+      if (data == null || data.Count == 0)
+      { return String.Empty; }
+
+      var sb = new System.Text.StringBuilder();
+      foreach (var kv in data)
+      {
+        var k = kv.Key;
+        var v = kv.Value;
+        if (DataEncode)
+        {
+          k = HttpUtility.HtmlEncode(k);
+          v = HttpUtility.HtmlEncode(v);
+        }
+        sb.Append(k).Append(delimiterKeyValue).Append(v);
+        sb.Append(delimiterNewEntry ?? Environment.NewLine);
+      }
+
+      if (sb.Length > 0 && sb[sb.Length - 1] == '\n')
+      {
+        sb.Remove(sb.Length - 1, 1); // Remove last newline character
+      }
+
+      return sb.ToString();
     }
 
 
