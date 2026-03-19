@@ -15,6 +15,18 @@ namespace DurDB
     public static string ConvertToCSVString<T>(
         this IEnumerable<T> data, string delimiter = "\t", bool enquote = false)
     {
+      return ConvertToCSVString(data, (IEnumerable<string>?)null, delimiter, enquote);
+    }
+
+
+    /// <summary>
+    /// Converts data to a CSV string, optionally filtering to only include
+    /// properties whose name is in <paramref name="includeProperties"/>.
+    /// </summary>
+    public static string ConvertToCSVString<T>(
+        this IEnumerable<T> data, IEnumerable<string>? includeProperties,
+        string delimiter = "\t", bool enquote = false)
+    {
       if (data == null || !data.Any())
       {
         return String.Empty;
@@ -30,6 +42,14 @@ namespace DurDB
           })
           .OrderBy(p => p.Order < 0 ? int.MaxValue : p.Order) // Nach Order sortieren
           .ToList();
+
+      if (includeProperties != null)
+      {
+        var includeSet = new HashSet<string>(includeProperties);
+        properties = properties
+          .Where(p => includeSet.Contains(p.Property.Name))
+          .ToList();
+      }
 
       var header = String.Join(delimiter, properties.Select(p => enquote ? Enquote(p.Name) : p.Name));
       var rows = data.Select(item =>
